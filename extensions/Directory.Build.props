@@ -1,0 +1,21 @@
+<Project>
+
+  <PropertyGroup>
+    <BuildOutDir>$([MSBuild]::NormalizeDirectory('$(GemmaFusionSdkDir)', '_build', '$(Platform)', '$(Configuration)'))</BuildOutDir>
+    <OutDir>$([MSBuild]::NormalizeDirectory('$(BuildOutDir)', 'bin', '$(MSBuildProjectName)'))</OutDir>
+    <IntDir>$([MSBuild]::NormalizeDirectory('$(BuildOutDir)', 'obj', '$(MSBuildProjectName)'))</IntDir>
+  </PropertyGroup>
+
+  <!--
+    Prefer static vcpkg libraries (no third-party DLLs like xapian-30.dll)
+    while keeping the MSVC runtime dynamic (/MD, /MDd).
+    This requires packages to be installed for these triplets:
+      - x64-windows-static-md
+      - x86-windows-static-md (if building Win32)
+  -->
+  <PropertyGroup Condition="'$(VcpkgTriplet)'==''">
+    <VcpkgTriplet Condition="'$(Platform)'=='x64'">x64-windows-static-md</VcpkgTriplet>
+    <VcpkgTriplet Condition="'$(Platform)'=='Win32'">x86-windows-static-md</VcpkgTriplet>
+  </PropertyGroup>
+
+</Project>

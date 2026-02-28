@@ -1,0 +1,10 @@
+﻿.vs
+_build
+*.user
+Packaging/Extensions
+packages
+example_extensions
+
+Packaging
+Scripts
+bs.ps1
