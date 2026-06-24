@@ -1,6 +1,6 @@
 # Tora
 
-Torch Automatic Rewriter and Adapter (TORA) is a cute little 💖 automatic transpiler for PyTorch function definition to proprietary C++ code with bindings to the libtorch C++ API functions.
+Tora is a cute little 💖 automatic transpiler for PyTorch function definition to proprietary C++ code with bindings to the libtorch C++ API functions.
 
 1. Reads PyTorch `native_functions.yaml`
 2. Parses function schemas into typed IR
@@ -26,10 +26,25 @@ npm run gen
 
 Default output: `extensions/GF.Extensions.PyTorch/generated/nodes/*.hpp` + `extensions/GF.Extensions.PyTorch/generated/manifest.txt`
 
+To download libtorch headers, run:
+
+```bash
+Invoke-WebRequest https://download.pytorch.org/libtorch/cu126/libtorch-win-shared-with-deps-2.12.1%2Bcu126.zip -OutFile libtorch.zip
+Extract-Archive libtorch.zip -DestinationPath libtorch
+```
+
+Currently the path to the libtorch headers is hardcoded in the vcxproj file as `C:/GitHub/libtorch`.
+
 ## CLI options
 
 ```bash
 npm run gen -- --source <url_or_file> --out <dir> --allowlist <file> --max <n> --include <regex>
+```
+
+Example command which was ran:
+
+```bash
+npm run gen -- --max 200
 ```
 
 Flags:
@@ -58,3 +73,7 @@ Default allowlist path is set in `src/config.ts`.
 ## Deterministic IDs
 
 Implementation IDs are generated from the canonical parsed signature (`schemaSignature`) using SHA-1-derived UUID bytes, then emitted in your `Core::Uuid(...)` constructor format.
+
+## TODO: 
+
+ - Add exclude list support

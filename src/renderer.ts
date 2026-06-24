@@ -33,15 +33,31 @@ export function renderNodeDefinition(fn: TorchFunction): string {
     .join("\n");
 
   const fetchInputs = fn.args
-    .map((arg) => `        auto ${safeAliasName(arg.name)} = inputs.Get<In_${safeAliasName(arg.name)}>();`)
+    .map((arg) => {
+      const n = safeAliasName(arg.name);
+      if (arg.optional) {
+        return [
+          `        std::optional<decltype(ToTorchValue(inputs.Get<In_${n}>()))> torch_${n};`,
+          `        if (inputs.ContainsValue<In_${n}>()) {`,
+          `            torch_${n} = ToTorchValue(inputs.Get<In_${n}>());`,
+          "        }"
+        ].join("\n");
+      }
+      return `        auto torch_${n} = ToTorchValue(inputs.Get<In_${n}>());`;
+    })
     .join("\n");
 
-  const setOutputs = fn.returns
-    .map((ret, i) => {
-      const n = safeAliasName(ret.name ?? `output_${i}`);
-      return `        // TODO: replace placeholder_${n} with actual computed value\n        outputs.Set<Out_${n}>(nullptr);`;
-    })
-    .join("\n\n");
+  const callArgs = fn.args.map((arg) => `torch_${safeAliasName(arg.name)}`).join(", ");
+
+  const setOutputs =
+    fn.returns.length <= 1
+      ? `        outputs.Set<Out_${safeAliasName(fn.returns[0]?.name ?? "output_0")}>((FromTorchValue(result)));`
+      : fn.returns
+          .map((ret, i) => {
+            const n = safeAliasName(ret.name ?? `output_${i}`);
+            return `        outputs.Set<Out_${n}>(FromTorchValue(std::get<${i}>(result)));`;
+          })
+          .join("\n");
 
   return `struct ${className} : GF::Extensions::impl::DataProcessorBridgeImpl<${className}> {
     static constexpr auto name() { return std::string_view("${displayName}"); }
@@ -60,11 +76,44 @@ ${registerInputs}
 ${registerOutputs}
     }
 
+  private:
+    static at::Tensor ToTorchValue(const Data::Array& value) {
+        throw std::runtime_error("Data::TensorProperty to at::Tensor mapping is not implemented yet");
+    }
+
+    static Data::Array FromTorchValue(const at::Tensor& value) {
+        throw std::runtime_error("at::Tensor to Data::TensorProperty mapping is not implemented yet");
+    }
+
+    template<typename TValue>
+    static auto ToTorchValue(const TValue& value) {
+        return value;
+    }
+
+    template<typename TValue>
+    static auto FromTorchValue(const TValue& value) {
+        return value;
+    }
+
+    static at::ScalarType ToTorchValue(const Data::Enum& value) {
+        return static_cast<at::ScalarType>(value.GetIndex());
+    }
+
+    static bool ToTorchValue(const Core::Bool& value) {
+        return (bool)value;
+    }
+
+    static at::string_view ToTorchValue(const Data::String& value) {
+        return std::string_view((const char*)value.data(), value.size());
+    }
+
+  public:
+
     void Process(const Data::Properties& inputs, Data::Properties outputs)
     {
 ${fetchInputs}
 
-        // TODO: implement operator execution bridge.
+        auto result = at::${fn.baseName}(${callArgs});
 ${setOutputs}
     }
 };

@@ -1,6 +1,6 @@
 # GF Extensions
 
-Folder for GF Server extensions for the AID HCH project.
+Project which will contain extensions for the Tora adapter.
 
 ## Getting started
 
